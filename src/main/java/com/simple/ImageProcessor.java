@@ -16,24 +16,36 @@ public class ImageProcessor {
 
         try {
             BufferedImage firstImage = ImageIO.read(ClassLoader.getSystemResource("com/simple/image1.png"));
-            BufferedImage secondImage = ImageIO.read(ClassLoader.getSystemResource("com/simple/image2.png"));
+            BufferedImage secondImage = ImageIO.read(ClassLoader.getSystemResource("com/simple/image2_test.png"));
 
             Graphics2D graphics = secondImage.createGraphics();
             graphics.setColor(new Color(255, 0, 0));
 
-            ImageComparator comparator = new ImageComparator(firstImage, secondImage);
-            comparator.imageCompare();
-            comparator.mergeDots();
-            comparator.mergeLines();
-            comparator.mergeRegions();
+            long startTime = System.currentTimeMillis();
+//            ImageComparator comparator = new ImageComparator(firstImage, secondImage);
+//            comparator.imageCompare();
+//            comparator.mergeDots();
+//            comparator.mergeLines();
+//            comparator.mergeRegions();
+            ImageComparator comparator = new ImageComparator(5);
+            List<Rectangle> rectangles = comparator.getDifference(firstImage, secondImage);
 
-            for (List<Integer> line :
-                    comparator.getDiffData()) {
-                graphics.drawRect(line.get(0), line.get(1), line.get(2), line.get(3));
+            long endTime = System.currentTimeMillis();
+            System.out.println("Spent time: " + (endTime - startTime));
+
+            for (Rectangle rectangle :
+                    rectangles) {
+                System.out.println(rectangle.toString());
+                graphics.draw(rectangle);
             }
+//            for (List<Integer> line :
+//                    comparator.getDiffData()) {
+//                System.out.println(line);
+//                graphics.drawRect(line.get(0), line.get(1), line.get(2), line.get(3));
+//            }
 
             ImageIO.write(secondImage, "png", new File(imagePath));
-        } catch (IOException e) {
+        } catch (IOException | DifferentImageSizesException e) {
             e.printStackTrace();
         }
     }
