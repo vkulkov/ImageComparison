@@ -7,6 +7,7 @@ import java.util.List;
 
 public class ImageComparator {
     private final int approximation;
+    private PixelComparator pixelComparator;
 
     private List<List<Integer>> diffData = new ArrayList<>();
 
@@ -25,7 +26,16 @@ public class ImageComparator {
     }
 
     public ImageComparator(int approximation) {
+        this(approximation, new PixelComparator());
+    }
+
+    public ImageComparator(PixelComparator pixelComparator) {
+        this(1, pixelComparator);
+    }
+
+    public ImageComparator(int approximation, PixelComparator pixelComparator) {
         this.approximation = approximation;
+        this.pixelComparator = pixelComparator;
     }
 
     public List<Rectangle> getDifference(BufferedImage first, BufferedImage second) throws DifferentImageSizesException {
@@ -35,7 +45,7 @@ public class ImageComparator {
         List<Rectangle> buffer = new ArrayList<>();
         for (int y = 0; y < first.getHeight(); y++) {
             for (int x = 0; x < first.getWidth(); x++) {
-                if (first.getRGB(x, y) != second.getRGB(x, y)) {
+                if (pixelComparator.isDifferent(first.getRGB(x, y), second.getRGB(x, y))) {
                     int currentX = x;
                     int currentY = y;
                     int currentWidth = 0;
