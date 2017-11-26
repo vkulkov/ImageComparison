@@ -34,7 +34,8 @@ public class ImageComparator {
     }
 
     public ImageComparator(int approximation, PixelComparator pixelComparator) {
-        this.approximation = approximation;
+        if (approximation < 1) this.approximation = 1;
+        else this.approximation = approximation;
         this.pixelComparator = pixelComparator;
     }
 
