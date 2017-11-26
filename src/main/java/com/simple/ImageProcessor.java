@@ -23,7 +23,7 @@ public class ImageProcessor {
 
             long startTime = System.currentTimeMillis();
             ImageComparator comparator = new ImageComparator(5, new PixelComparator(25));
-            List<Rectangle> rectangles = comparator.getDifference(firstImage, secondImage);
+            List<Rectangle> rectangles = comparator.getAreasOfDifference(firstImage, secondImage);
             long endTime = System.currentTimeMillis();
             System.out.println("Spent time: " + (endTime - startTime));
 

@@ -38,7 +38,7 @@ public class ImageComparator {
         this.pixelComparator = pixelComparator;
     }
 
-    public List<Rectangle> getDifference(BufferedImage first, BufferedImage second) throws DifferentImageSizesException {
+    public List<Rectangle> getAreasOfDifference(BufferedImage first, BufferedImage second) throws DifferentImageSizesException {
         if ((first.getWidth() != second.getWidth()) || (first.getHeight() != second.getHeight())) {
             throw new DifferentImageSizesException();
         }
