@@ -25,13 +25,13 @@ public class ImageProcessor {
             ImageComparator comparator = new ImageComparator(5, new PixelComparator(25));
             List<Rectangle> rectangles = comparator.getAreasOfDifference(firstImage, secondImage);
             long endTime = System.currentTimeMillis();
-            System.out.println("Spent time: " + (endTime - startTime));
 
             for (Rectangle rectangle :
                     rectangles) {
                 System.out.println(rectangle.toString());
                 graphics.draw(rectangle);
             }
+            System.out.println("Spent time: " + (endTime - startTime));
 
             ImageIO.write(secondImage, "png", new File(imagePath));
         } catch (IOException | DifferentImageSizesException e) {

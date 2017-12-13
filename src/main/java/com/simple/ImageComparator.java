@@ -7,7 +7,16 @@ import java.util.List;
 
 public class ImageComparator {
     private final int approximation;
-    private PixelComparator pixelComparator;
+    private final PixelComparator pixelComparator;
+
+    private List<Rectangle> buffer = new ArrayList<>();
+    private int currentX = 0;
+    private int currentY = 0;
+    private int currentWidth = 0;
+    private int currentHeight = 0;
+    private int tempIndex = 0;               //in case of multiple merges
+    private boolean merged = false;
+    private boolean mergedOnTwoAxes = false;
 
     private List<List<Integer>> diffData = new ArrayList<>();
 
@@ -43,118 +52,128 @@ public class ImageComparator {
         if ((first.getWidth() != second.getWidth()) || (first.getHeight() != second.getHeight())) {
             throw new DifferentImageSizesException();
         }
-        List<Rectangle> buffer = new ArrayList<>();
         for (int y = 0; y < first.getHeight(); y++) {
             for (int x = 0; x < first.getWidth(); x++) {
                 if (pixelComparator.isDifferent(first.getRGB(x, y), second.getRGB(x, y))) {
-                    int currentX = x;
-                    int currentY = y;
-                    int currentWidth = 0;
-                    int currentHeight = 0;
+                    currentX = x;
+                    currentY = y;
+                    currentWidth = 0;
+                    currentHeight = 0;
+                    tempIndex = 0;
+                    merged = false;
+                    mergedOnTwoAxes = false;
                     //Trying to merge with already buffered areas
-                    int temp = 0;           //in case of multiple merges
-                    boolean merged = false;
-                    boolean noMore = false;
-                    for (int i = 0; !noMore && i < buffer.size(); i++) {
-                        Rectangle rect = buffer.get(i);
-                        int rectX = rect.x;
-                        int rectY = rect.y;
-                        int rectWidth = rect.width;
-                        int rectHeight = rect.height;
-                        //Merged areas data
-                        int newX = 0, newY = 0, newWidth = 0, newHeight = 0;
-                        boolean intersect = false;
-                        //Intersection checks and determination of a new rectangle
-                        if ((currentX >= rectX) && (currentY >= rectY) &&
-                                (currentX <= rectX + rectWidth + approximation) &&
-                                (currentY <= rectY + rectHeight + approximation)) {
-                            newX = rectX;
-                            newY = rectY;
-                            if (currentX + currentWidth < rectX + rectWidth) {
-                                newWidth = rectWidth;
-                            } else {
-                                newWidth = currentWidth + currentX - rectX;
-                            }
-                            if (currentY + currentHeight < rectY + rectHeight) {
-                                newHeight = rectHeight;
-                            } else {
-                                newHeight = currentHeight + currentY - rectY;
-                            }
-                            intersect = true;
-                        } else if ((currentX >= rectX) && (currentY <= rectY) &&
-                                (currentX <= rectX + rectWidth + approximation) &&
-                                (currentY + currentHeight + approximation >= rectY)) {
-                            newX = rectX;
-                            newY = currentY;
-                            if (currentX + currentWidth < rectX + rectWidth) {
-                                newWidth = rectWidth;
-                            } else {
-                                newWidth = currentWidth + currentX - rectX;
-                            }
-                            if (currentY + currentHeight > rectY + rectHeight) {
-                                newHeight = currentHeight;
-                            } else {
-                                newHeight = rectHeight + rectY - currentY;
-                            }
-                            intersect = true;
-                        } else if ((currentX <= rectX) && (currentY >= rectY) &&
-                                (currentX + currentWidth + approximation >= rectX) &&
-                                (currentY <= rectY + rectHeight + approximation)) {
-                            newX = currentX;
-                            newY = rectY;
-                            if (currentX + currentWidth > rectX + rectWidth) {
-                                newWidth = currentWidth;
-                            } else {
-                                newWidth = rectWidth + rectX - currentX;
-                            }
-                            if (currentY + currentHeight < rectY + rectHeight) {
-                                newHeight = rectHeight;
-                            } else {
-                                newHeight = currentHeight + currentY - rectY;
-                            }
-                            intersect = true;
-                        } else if ((currentX <= rectX) && (currentY <= rectY) &&
-                                (currentX + currentWidth + approximation >= rectX) &&
-                                (currentY + currentHeight + approximation >= rectY)) {
-                            newX = currentX;
-                            newY = currentY;
-                            if (currentX + currentWidth > rectX + rectWidth) {
-                                newWidth = currentWidth;
-                            } else {
-                                newWidth = rectWidth + rectX - currentX;
-                            }
-                            if (currentY + currentHeight > rectY + rectHeight) {
-                                newHeight = currentHeight;
-                            } else {
-                                newHeight = rectHeight + rectY - currentY;
-                            }
-                            intersect = true;
-                        }
-
-                        if (intersect) {
-                            if (merged) {
-                                buffer.set(temp, null);     //no need of this area anymore
-                                noMore = true;              //current point wouldn't be merged with more than two areas anyway
-                            }
-                            buffer.set(i, new Rectangle(newX, newY, newWidth, newHeight));
-                            currentX = newX;
-                            currentY = newY;
-                            currentWidth = newWidth;
-                            currentHeight = newHeight;
-                            temp = i;
-                            merged = true;
-                        }
+                    for (int i = 0; !mergedOnTwoAxes && i < buffer.size(); i++) {
+                        checkBufferedAreaForIntersection(i);
                     }
+                    //In case of no successful merge simply add new area to the buffer
                     if (!merged) {
                         buffer.add(new Rectangle(currentX, currentY, currentWidth, currentHeight));
                     }
-                    if (noMore) {
-                        buffer.remove(null);
+                    //In case of area merge on two axes, check for intersection with previously checked areas
+                    if (mergedOnTwoAxes) {
+                        merged = false;
+                        mergedOnTwoAxes = false;
+                        for (int i = tempIndex; !mergedOnTwoAxes && i >= 0; i--) {
+                            checkBufferedAreaForIntersection(i);
+                        }
                     }
                 }
             }
         }
         return buffer;
+    }
+
+    private void checkBufferedAreaForIntersection(int bufferedAreaIndex) {
+        Rectangle rect = buffer.get(bufferedAreaIndex);
+        int rectX = rect.x;
+        int rectY = rect.y;
+        int rectWidth = rect.width;
+        int rectHeight = rect.height;
+        //Merged areas data
+        int newX = 0, newY = 0, newWidth = 0, newHeight = 0;
+        boolean intersect = false;
+        //Intersection checks and determination of a new rectangle characteristics
+        if ((currentX >= rectX) && (currentY >= rectY) &&
+                (currentX <= rectX + rectWidth + approximation) &&
+                (currentY <= rectY + rectHeight + approximation)) {
+            newX = rectX;
+            newY = rectY;
+            if (currentX + currentWidth < rectX + rectWidth) {
+                newWidth = rectWidth;
+            } else {
+                newWidth = currentWidth + currentX - rectX;
+            }
+            if (currentY + currentHeight < rectY + rectHeight) {
+                newHeight = rectHeight;
+            } else {
+                newHeight = currentHeight + currentY - rectY;
+            }
+            intersect = true;
+        } else if ((currentX >= rectX) && (currentY <= rectY) &&
+                (currentX <= rectX + rectWidth + approximation) &&
+                (currentY + currentHeight + approximation >= rectY)) {
+            newX = rectX;
+            newY = currentY;
+            if (currentX + currentWidth < rectX + rectWidth) {
+                newWidth = rectWidth;
+            } else {
+                newWidth = currentWidth + currentX - rectX;
+            }
+            if (currentY + currentHeight > rectY + rectHeight) {
+                newHeight = currentHeight;
+            } else {
+                newHeight = rectHeight + rectY - currentY;
+            }
+            intersect = true;
+        } else if ((currentX <= rectX) && (currentY >= rectY) &&
+                (currentX + currentWidth + approximation >= rectX) &&
+                (currentY <= rectY + rectHeight + approximation)) {
+            newX = currentX;
+            newY = rectY;
+            if (currentX + currentWidth > rectX + rectWidth) {
+                newWidth = currentWidth;
+            } else {
+                newWidth = rectWidth + rectX - currentX;
+            }
+            if (currentY + currentHeight < rectY + rectHeight) {
+                newHeight = rectHeight;
+            } else {
+                newHeight = currentHeight + currentY - rectY;
+            }
+            intersect = true;
+        } else if ((currentX <= rectX) && (currentY <= rectY) &&
+                (currentX + currentWidth + approximation >= rectX) &&
+                (currentY + currentHeight + approximation >= rectY)) {
+            newX = currentX;
+            newY = currentY;
+            if (currentX + currentWidth > rectX + rectWidth) {
+                newWidth = currentWidth;
+            } else {
+                newWidth = rectWidth + rectX - currentX;
+            }
+            if (currentY + currentHeight > rectY + rectHeight) {
+                newHeight = currentHeight;
+            } else {
+                newHeight = rectHeight + rectY - currentY;
+            }
+            intersect = true;
+        }
+
+        if (intersect) {
+            buffer.set(bufferedAreaIndex, new Rectangle(newX, newY, newWidth, newHeight));
+            currentX = newX;
+            currentY = newY;
+            currentWidth = newWidth;
+            currentHeight = newHeight;
+            if (merged) {
+                buffer.remove(tempIndex);       //no need of this area anymore
+                bufferedAreaIndex--;            //compensate for removal
+                mergedOnTwoAxes = true;         //current point wouldn't be merged with more than two areas
+            }
+            tempIndex = bufferedAreaIndex;
+            merged = true;
+        }
     }
 
     @Deprecated
