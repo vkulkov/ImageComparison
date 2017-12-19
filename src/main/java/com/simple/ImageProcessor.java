@@ -26,6 +26,9 @@ public class ImageProcessor {
             List<Rectangle> rectangles = comparator.getAreasOfDifference(firstImage, secondImage);
             long endTime = System.currentTimeMillis();
 
+            ResultsFilter filter = new ResultsFilter(3);
+            filter.filterResults(rectangles);
+
             for (Rectangle rectangle :
                     rectangles) {
                 System.out.println(rectangle.toString());
