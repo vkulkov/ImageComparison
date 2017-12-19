@@ -74,7 +74,7 @@ public class ImageComparator {
                     if (mergedOnTwoAxes) {
                         merged = false;
                         mergedOnTwoAxes = false;
-                        for (int i = tempIndex; !mergedOnTwoAxes && i >= 0; i--) {
+                        for (int i = tempIndex; i >= 0; i--) {
                             checkBufferedAreaForIntersection(i);
                         }
                     }
