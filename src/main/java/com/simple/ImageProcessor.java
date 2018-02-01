@@ -29,6 +29,10 @@ public class ImageProcessor {
             ResultsFilter filter = new ResultsFilter(3);
             filter.filterResults(rectangles);
 
+            if (rectangles.isEmpty()) {
+                System.out.println("No difference in the provided images was found. " +
+                        "Try to change setting and start the application again");
+            }
             for (Rectangle rectangle :
                     rectangles) {
                 System.out.println(rectangle.toString());
@@ -38,7 +42,7 @@ public class ImageProcessor {
 
             ImageIO.write(secondImage, "png", new File(imagePath));
         } catch (IOException | DifferentImageSizesException e) {
-            e.printStackTrace();
+            System.out.println("Compared images should have the same size.");
         }
     }
 }
